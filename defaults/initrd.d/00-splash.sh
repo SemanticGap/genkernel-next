@@ -280,6 +280,10 @@ _fbsplash_init() {
     mount -t tmpfs -osize=1k none "${SPLASH_CACHE}" || bad_msg "Error mounting tmpfs at ${SPLASH_CACHE}"
 
     "${SPLASH_BIN}" -t `_fbsplash_theme` --pidfile "${SPLASH_PID_FILE}" --type bootup
+
+    splashcmd updatesvc kernel svc_started
+    splashcmd updatesvc kernel-modules svc_inactive_start
+    splashcmd updatesvc rootfs svc_inactive_start
 }
 
 _fbsplash_cmd() {

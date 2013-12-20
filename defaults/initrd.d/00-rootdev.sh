@@ -226,6 +226,7 @@ ensure_initramfs_mounts() {
 
 rootdev_init() {
     good_msg "Initializing root device..."
+    splashcmd update_svc rootfs svc_starting
 
     while true; do
 
@@ -290,4 +291,6 @@ rootdev_init() {
         fi
         break
     done
+
+    splashcmd update_svc rootfs svc_started
 }
