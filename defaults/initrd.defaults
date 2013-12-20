@@ -67,6 +67,11 @@ PLYMOUTHD_BIN="/sbin/plymouthd"
 PLYMOUTH_BIN="/bin/plymouth"
 [ ! -e "${PLYMOUTH_BIN}" ] && PLYMOUTH_BIN="/usr/bin/plymouth"
 
+SPLASH_CACHE="/lib/splash/cache"
+SPLASH_PID_FILE="${SPLASH_CACHE}/daemon.pid"
+SPLASH_FIFO="${SPLASH_CACHE}/.splash"
+SPLASH_BIN="/sbin/fbsplashd.static"
+
 REAL_ROOT=""
 CONSOLE="/dev/console"
 NEW_ROOT="/newroot"
