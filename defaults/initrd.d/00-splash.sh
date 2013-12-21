@@ -86,11 +86,26 @@ splashcmd() {
         # no plymouth support?
         ;;
 
+        step_progress)
+        _splash_step_progress
+        ;;
+
         update_svc)
         _fbsplash_update_svc "${1}" "${2}"
         # no plymouth support?
         ;;
     esac
+}
+
+SPLASH_PROGRESS_CURRENT_STEP=0
+
+_splash_step_progress() {
+    SPLASH_PROGRESS_CURRENT_STEP=$(($SPLASH_PROGRESS_CURRENT_STEP + 1))
+    if [ "${SPLASH_PROGRESS_CURRENT_STEP}" -gt "${SPLASH_PROGRESS_STEPS}" ]; then
+        warn_msg "\$SPLASH_PROGRESS_STEPS needs to be increased to at least ${SPLASH_PROGRESS_CURRENT_STEP}"
+    else
+        _fbsplash_progress ${SPLASH_PROGRESS_CURRENT_STEP}
+    fi
 }
 
 # Courtesy of dracut. Licensed under GPL-2.
@@ -317,7 +332,7 @@ _fbsplash_log() {
 }
 
 _fbsplash_progress() {
-    _fbsplash_cmd "progress ${1}"
+    _fbsplash_cmd "progress $(($1 * $SPLASH_PROGRESS_STEP_SIZE))"
 }
 
 _fbsplash_update_svc() {
