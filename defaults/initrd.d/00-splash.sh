@@ -281,9 +281,10 @@ _fbsplash_init() {
 
     "${SPLASH_BIN}" -t `_fbsplash_theme` --pidfile "${SPLASH_PID_FILE}" --type bootup
 
-    splashcmd updatesvc kernel svc_started
-    splashcmd updatesvc kernel-modules svc_inactive_start
-    splashcmd updatesvc rootfs svc_inactive_start
+    splashcmd update_svc kernel svc_started
+    splashcmd update_svc kernel-modules svc_inactive_start
+    splashcmd update_svc rootfs svc_inactive_start
+    splashcmd step_progress
 }
 
 _fbsplash_cmd() {
