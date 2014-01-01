@@ -180,6 +180,7 @@ real_init_init() {
 # listed filesystem mountpoints. For instance, /usr, which is
 # required by udev & systemd.
 ensure_initramfs_mounts() {
+    local rerun="$1"
     local fslist=
 
     if [ -f "${NEW_ROOT}/etc/initramfs.mounts" ]; then
@@ -192,7 +193,7 @@ ensure_initramfs_mounts() {
     for fs in ${fslist}; do
 
         mnt="${NEW_ROOT}${fs}"
-        if mountpoint -q "${mnt}"; then
+        if [ "${rerun}" = "rerun" ] && mountpoint -q "${mnt}"; then
             good_msg "${fs} already mounted, skipping..."
             continue
         fi
@@ -200,7 +201,7 @@ ensure_initramfs_mounts() {
         dev=$(_get_mount_device "${fs}")
         [ -z "${dev}" ] && continue
         # Resolve it like util-linux mount does
-        [ -L "${dev}" ] && dev=$(readlink "${dev}")
+        #[ -L "${dev}" ] && dev=$(readlink "${dev}")
         # In this case, it's probably part of the filesystem
         # and not a mountpoint
         [ -z "${dev}" ] && continue
@@ -213,8 +214,12 @@ ensure_initramfs_mounts() {
             # ro must be trailing, and the options will always
             # contain at least 'defaults'
             opts="$(_get_mount_options ${fs} | _strip_mount_options)"
-            opts="${opts},ro"
+            #opts="${opts},ro"
         fi
+
+	if [ "${fstype}" = "aufs" ] && [ "${mnt}" = "/" ]; then
+	    mount -oremount,rw "${NEW_ROOT}"
+	fi
 
         cmd="mount -t ${fstype} -o ${opts} ${dev} ${mnt}"
         good_msg "Mounting ${dev} as ${fs}: ${cmd}"

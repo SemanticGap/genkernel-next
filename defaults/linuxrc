@@ -252,6 +252,8 @@ for x in ${CMDLINE}; do
         aufs)
             USE_AUFS=1
         ;;
+        aufsroot=*)
+            AUFS_ROOT=${x#*=}
     esac
 done
 
@@ -310,6 +312,9 @@ rundebugshell "before setting up the root filesystem"
 # Setup Live system mounts
 is_livecd && livecd_init
 
+# Setup any aufs root
+#is_aufs_root && aufs_root_init
+
 # Determine root device
 rootdev_init
 splashcmd step_progress
@@ -319,7 +324,7 @@ is_livecd && livecd_mount
 
 # Re-run this here, which makes sure that it at least had a chance
 # to be called.
-ensure_initramfs_mounts
+#ensure_initramfs_mounts rerun
 
 splashcmd hasroot "${NEW_ROOT}"
 
