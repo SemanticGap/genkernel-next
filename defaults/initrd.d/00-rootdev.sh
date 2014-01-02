@@ -3,6 +3,7 @@
 . /etc/initrd.d/00-common.sh
 . /etc/initrd.d/00-splash.sh
 . /etc/initrd.d/00-zfs.sh
+. /etc/initrd.d/00-aufsroot.sh
 
 _fstype_init() {
     local fstype="${1}"
@@ -260,6 +261,9 @@ rootdev_init() {
             prompt_user "REAL_ROOT" "root block device"
             continue
         fi
+
+	# mount the AUFS overlay
+	aufs_root_init
 
         # now that the root filesystem is mounted, before
         # checking the validity of ${NEW_ROOT} and ${REAL_INIT},

@@ -252,6 +252,9 @@ for x in ${CMDLINE}; do
         aufs)
             USE_AUFS=1
         ;;
+	aufsroot=*)
+	    AUFS_ROOT=${x#*=}
+	;;
     esac
 done
 
