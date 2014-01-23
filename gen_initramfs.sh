@@ -865,14 +865,23 @@ append_auxilary() {
         cp "${GK_SHARE}/defaults/initrd.scripts" "${TEMP}/initramfs-aux-temp/etc/initrd.scripts"
     fi
 
-    cp "${GK_SHARE}/defaults/initrd.shutdown" "${TEMP}/initramfs-aux-temp/etc/initrd.shutdown"
-
     if [ -d "${GK_SHARE}/arch/${ARCH}/initrd.d" ]
     then
         cp -r "${GK_SHARE}/arch/${ARCH}/initrd.d" \
             "${TEMP}/initramfs-aux-temp/etc/"
     else
         cp -r "${GK_SHARE}/defaults/initrd.d" \
+            "${TEMP}/initramfs-aux-temp/etc/"
+    fi
+
+    cp "${GK_SHARE}/defaults/initrd.shutdown" "${TEMP}/initramfs-aux-temp/etc/initrd.shutdown"
+
+    if [ -d "${GK_SHARE}/arch/${ARCH}/shutdown.d" ]
+    then
+        cp -r "${GK_SHARE}/arch/${ARCH}/shutdown.d" \
+            "${TEMP}/initramfs-aux-temp/etc/"
+    else
+        cp -r "${GK_SHARE}/defaults/shutdown.d" \
             "${TEMP}/initramfs-aux-temp/etc/"
     fi
 
