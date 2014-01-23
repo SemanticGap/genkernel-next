@@ -31,4 +31,24 @@ aufs_root_init() {
 	mount -omove /mnt/aufs/mnt /newroot/mnt/root/mnt
 	mount -omove /mnt/aufs/ro /newroot/mnt/root/ro
 	mount -omove /mnt/aufs/rw /newroot/mnt/root/rw
+
+  aufs_root_install_shutdown_hook
+}
+
+aufs_root_install_shutdown_hook() {
+    echo <<EOF > /run/initramfs/shutdown.d/99-aufsroot.sh
+#!/bin/sh
+for i in mnt ro rw; do
+  mkdir -p /mnt/aufs/$i
+  mount -omove /newroot/mnt/root/$i /mnt/aufs/$i
+done
+
+umount /newroot
+
+for i in mnt ro rw; do
+  umount /mnt/aufs/$i
+done
+EOF
+
+    chmod ugo+x /run/initramfs/shutdown.d/99-aufsroot.sh
 }

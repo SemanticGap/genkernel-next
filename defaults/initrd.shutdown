@@ -1,0 +1,15 @@
+#!/bin/sh
+
+. /etc/initrd.d/00-common.sh
+
+rundebugshell "before executing shutdown scripts"
+
+for i in /run/initramfs/shutdown.d/*; do
+    local script=`basename $i`
+    good_msg "Running $script"
+    $i
+done
+
+rundebugshell "before power off"
+
+good_msg "You can now poweroff."

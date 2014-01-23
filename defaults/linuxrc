@@ -260,6 +260,8 @@ done
 
 quiet_kmsg
 
+shutdown_init
+
 real_init_init
 
 is_livecd || {

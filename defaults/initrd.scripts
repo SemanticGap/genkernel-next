@@ -3,6 +3,7 @@
 . /etc/initrd.defaults
 . /etc/initrd.d/00-splash.sh
 . /etc/initrd.d/00-common.sh
+. /etc/initrd.d/00-shutdown.sh
 . /etc/initrd.d/00-fsdev.sh
 . /etc/initrd.d/00-devmgr.sh
 . /etc/initrd.d/00-zfs.sh
