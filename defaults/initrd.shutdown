@@ -1,15 +1,23 @@
 #!/bin/sh
 
 . /etc/initrd.d/00-common.sh
+. /etc/initrd.d/00-splash.sh
+
+COMMAND="$1"
+
+if grep debug /proc/cmdline 2> /dev/null; then
+    export DEBUG="1"
+fi
 
 rundebugshell "before executing shutdown scripts"
 
 for i in /run/initramfs/shutdown.d/*; do
-    local script=`basename $i`
-    good_msg "Running $script"
+    good_msg "Running $i"
     $i
 done
 
-rundebugshell "before power off"
+rundebugshell "before $COMMAND"
 
-good_msg "You can now poweroff."
+good_msg "You can now $COMMAND."
+
+$COMMAND -f

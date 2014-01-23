@@ -12,6 +12,10 @@ is_livecd() {
     return 1
 }
 
+splash_cmd() {
+    return 0
+}
+
 good_msg() {
     [ -n "${QUIET}" ] && [ -z "${DEBUG}" ] && return 0
 

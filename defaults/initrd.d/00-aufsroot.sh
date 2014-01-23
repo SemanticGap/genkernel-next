@@ -3,6 +3,8 @@
 . /etc/initrd.d/00-common.sh
 . /etc/initrd.d/00-splash.sh
 
+AUFS_MNT_ROOT="/run/aufs"
+
 is_aufs_root() {
 	if [ -b "${AUFS_ROOT}" ]; then
 		return 0
@@ -16,21 +18,14 @@ aufs_root_init() {
 
 	good_msg "Mounting overlay file system ${AUFS_ROOT}"
 
-	mkdir -p /mnt/aufs/rw /mnt/aufs/ro /mnt/aufs/mnt
-
-	mount -t tmpfs none /mnt/aufs/mnt
-	mkdir -p /mnt/aufs/mnt/mnt/root/ro /mnt/aufs/mnt/mnt/root/rw /mnt/aufs/mnt/mnt/root/mnt
+	mkdir -p ${AUFS_MNT_ROOT}/rw ${AUFS_MNT_ROOT}/ro
 
 	mount -oremount,rw /newroot
-	mount -omove /newroot /mnt/aufs/rw
+	mount -omove /newroot ${AUFS_MNT_ROOT}/rw
 
-	mount "${AUFS_ROOT}" /mnt/aufs/ro
+	mount "${AUFS_ROOT}" ${AUFS_MNT_ROOT}/ro
 
-	mount -t aufs none /newroot -o dirs=/mnt/aufs/rw=rw:/mnt/aufs/ro=ro:/mnt/aufs/mnt=ro
-
-	mount -omove /mnt/aufs/mnt /newroot/mnt/root/mnt
-	mount -omove /mnt/aufs/ro /newroot/mnt/root/ro
-	mount -omove /mnt/aufs/rw /newroot/mnt/root/rw
+	mount -t aufs none /newroot -o dirs=${AUFS_MNT_ROOT}/rw=rw:${AUFS_MNT_ROOT}/ro=ro
 
   aufs_root_install_shutdown_hook
 }

@@ -875,6 +875,7 @@ append_auxilary() {
     fi
 
     cp "${GK_SHARE}/defaults/initrd.shutdown" "${TEMP}/initramfs-aux-temp/etc/initrd.shutdown"
+    chmod u+x "${TEMP}/initramfs-aux-temp/etc/initrd.shutdown"
 
     if [ -d "${GK_SHARE}/arch/${ARCH}/shutdown.d" ]
     then
@@ -884,6 +885,8 @@ append_auxilary() {
         cp -r "${GK_SHARE}/defaults/shutdown.d" \
             "${TEMP}/initramfs-aux-temp/etc/"
     fi
+
+    chmod u+x "${TEMP}/initramfs-aux-temp/etc/shutdown.d/"*
 
     if [ -f "${GK_SHARE}/arch/${ARCH}/initrd.defaults" ]
     then
