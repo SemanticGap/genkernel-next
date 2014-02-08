@@ -11,7 +11,7 @@ fi
 
 rundebugshell "before executing shutdown scripts"
 
-for i in /run/initramfs/shutdown.d/*; do
+ls /run/initramfs/shutdown.d/* > /dev/null 2>&1 && for i in /run/initramfs/shutdown.d/*; do
     good_msg "Running $i"
     $i
 done
