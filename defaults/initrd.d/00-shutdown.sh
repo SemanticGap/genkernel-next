@@ -11,7 +11,7 @@ shutdown_init() {
     done
 
     # save some space
-    rm -r /run/initramfs/lib*/modules
+    rm -rf /run/initramfs/lib*/modules
 
     # copy the script to where systemd expects
     mkdir -p /run/initramfs/shutdown.d
