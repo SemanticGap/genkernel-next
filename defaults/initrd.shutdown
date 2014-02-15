@@ -3,21 +3,57 @@
 . /etc/initrd.d/00-common.sh
 . /etc/initrd.d/00-splash.sh
 
+# systemd passes if this reboot, poweroff, etc.
 COMMAND="$1"
 
-if grep debug /proc/cmdline 2> /dev/null; then
-    export DEBUG="1"
-fi
+# reprocess the kernel's command line
+
+# TODO: move cmdline parsing into a dedicated function
+# that's shared between linuxrc and initrd.shutdown
+
+export CMDLINE=$(cat /proc/cmdline)
+
+QUIET=""
+DEBUG=""
+PLYMOUTH=""
+FBSPLASH=""
+
+for x in ${CMDLINE}; do
+  case "${x}" in
+    quiet)
+      export QUIET=1
+    ;;
+    debug)
+      export DEBUG=1
+    ;;
+    splash)
+      export PLYMOUTH=1
+    ;;
+    splash=*)
+      export FBSPLASH=1
+    ;;
+  esac
+done
 
 rundebugshell "before executing shutdown scripts"
+
+# display the splash
+splashcmd init shutdown
+good_msg "Shutting down..."
+
+# check for and run any shutdown hooks
 
 ls /run/initramfs/shutdown.d/* > /dev/null 2>&1 && for i in /run/initramfs/shutdown.d/*; do
     good_msg "Running $i"
     $i
 done
 
+# fin
+
 rundebugshell "before $COMMAND"
 
+splashcmd progress "${SPLASH_PROGRESS_STEPS}"
 good_msg "You can now $COMMAND."
+sleep 1
 
 $COMMAND -f

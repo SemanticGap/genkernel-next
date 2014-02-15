@@ -48,7 +48,7 @@ splashcmd() {
 
     case "${cmd}" in
         init)
-        is_fbsplash && _fbsplash_init
+        is_fbsplash && _fbsplash_init "${1}"
         is_plymouth && _plymouth_init
         ;;
 
@@ -292,14 +292,18 @@ is_fbsplash_started() {
 _fbsplash_init() {
     is_fbsplash_started && return
 
+    local TYPE="${1:-bootup}"
+
     mount -t tmpfs -osize=1k none "${SPLASH_CACHE}" || bad_msg "Error mounting tmpfs at ${SPLASH_CACHE}"
 
-    "${SPLASH_BIN}" -t `_fbsplash_theme` --pidfile "${SPLASH_PID_FILE}" --type bootup
+    "${SPLASH_BIN}" -t `_fbsplash_theme` --pidfile "${SPLASH_PID_FILE}" --type "${TYPE}"
 
-    splashcmd update_svc kernel svc_started
-    splashcmd update_svc kernel-modules svc_inactive_start
-    splashcmd update_svc rootfs svc_inactive_start
-    splashcmd step_progress
+    if [[ "${TYPE}" = "bootup" ]]; then
+        splashcmd update_svc kernel svc_started
+        splashcmd update_svc kernel-modules svc_inactive_start
+        splashcmd update_svc rootfs svc_inactive_start
+        splashcmd step_progress
+    fi
 }
 
 _fbsplash_cmd() {
