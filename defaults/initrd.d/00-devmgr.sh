@@ -71,7 +71,7 @@ mount_devfs() {
     fi
 
     mkdir -p -m 1777 /dev/shm
-    mount -t tmpfs -o mode=1777,nosuid,nodev,strictatime tmpfs \
+    mount -t tmpfs -o mode=1777,nosuid,nodev tmpfs \
         /dev/shm || bad_msg "Failed to mount /dev/shm"
 }
 

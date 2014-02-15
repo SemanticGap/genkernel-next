@@ -17,28 +17,36 @@ splash_cmd() {
 }
 
 good_msg() {
+    splashcmd set_msg "$1"
     [ -n "${QUIET}" ] && [ -z "${DEBUG}" ] && return 0
 
     msg_string=$1
     msg_string="${msg_string:-...}"
     [ "$2" != 1 ] && \
-        echo -e "${GOOD}>>${NORMAL}${BOLD} ${msg_string} ${NORMAL}"
+        echo -e "${GOOD}>>${NORMAL}${BOLD} ${msg_string} ${NORMAL}" && \
+        splashcmd log "${msg_string}"
 }
 
 warn_msg() {
+    splashcmd set_msg "$1"
+
     msg_string=$1
     msg_string="${msg_string:-...}"
     [ "$2" != 1 ] && \
-        echo -e "${WARN}**${NORMAL}${BOLD} ${msg_string} ${NORMAL}"
+        echo -e "${WARN}**${NORMAL}${BOLD} ${msg_string} ${NORMAL}" && \
+        splashcmd log "${msg_string}"
 }
 
 bad_msg() {
+    splashcmd set_msg "$1"
+
     msg_string=$1
     msg_string="${msg_string:-...}"
     if [ "$2" != 1 ]; then
         # TODO(lxnay): fix circular dep with 00-splash.sh
         splashcmd verbose
-        echo -e "${BAD}!!${NORMAL}${BOLD} ${msg_string} ${NORMAL}"
+        echo -e "${BAD}!!${NORMAL}${BOLD} ${msg_string} ${NORMAL}" && \
+        splashcmd log "${msg_string}"
     fi
 }
 

@@ -279,6 +279,7 @@ devmgr_init
 splash_init
 
 modules_init
+splashcmd step_progress
 
 # Apply scan delay if specified
 sdelay
@@ -295,6 +296,7 @@ setup_md_device
 
 start_volumes
 zfs_start_volumes
+splashcmd step_progress
 
 setup_keymap
 
@@ -315,6 +317,7 @@ is_livecd && livecd_init
 
 # Determine root device
 rootdev_init
+splashcmd step_progress
 
 # If CD root is set determine the looptype to boot
 is_livecd && livecd_mount
@@ -339,6 +342,7 @@ verbose_kmsg
 devmgr_terminate
 
 good_msg "Booting (initramfs)"
+splashcmd step_progress
 
 cd "${CHROOT}"
 

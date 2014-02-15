@@ -48,30 +48,64 @@ splashcmd() {
 
     case "${cmd}" in
         init)
-        is_fbsplash && splash init
+        is_fbsplash && _fbsplash_init
         is_plymouth && _plymouth_init
         ;;
 
+        exit)
+        is_fbsplash && _fbsplash_exit
+        ;;
+
         verbose)
-        is_fbsplash && splash verbose
+        _fbsplash_hide
         _plymouth_hide
         ;;
 
         quiet)
-        # no fbsplash support
+        _fbsplash_show
         _plymouth_show
         ;;
 
         set_msg)
-        is_fbsplash && splash set_msg "${1}"
+        _fbsplash_message "${1}"
         _plymouth_message "${1}"
         ;;
 
         hasroot)
-        # no fbsplash support
+        _fbsplash_newroot "${1}"
         _plymouth_newroot "${1}"
         ;;
+
+        log)
+        _fbsplash_log "${1}"
+        # no plymouth support?
+        ;;
+
+        progress)
+        _fbsplash_progress "${1}"
+        # no plymouth support?
+        ;;
+
+        step_progress)
+        _splash_step_progress
+        ;;
+
+        update_svc)
+        _fbsplash_update_svc "${1}" "${2}"
+        # no plymouth support?
+        ;;
     esac
+}
+
+SPLASH_PROGRESS_CURRENT_STEP=0
+
+_splash_step_progress() {
+    SPLASH_PROGRESS_CURRENT_STEP=$(($SPLASH_PROGRESS_CURRENT_STEP + 1))
+    if [ "${SPLASH_PROGRESS_CURRENT_STEP}" -gt "${SPLASH_PROGRESS_STEPS}" ]; then
+        warn_msg "\$SPLASH_PROGRESS_STEPS needs to be increased to at least ${SPLASH_PROGRESS_CURRENT_STEP}"
+    else
+        _fbsplash_progress ${SPLASH_PROGRESS_CURRENT_STEP}
+    fi
 }
 
 # Courtesy of dracut. Licensed under GPL-2.
@@ -239,4 +273,80 @@ _plymouth_message() {
 
 _plymouth_newroot() {
     is_plymouth_started && "${PLYMOUTH_BIN}" --newroot="${1}"
+}
+
+_fbsplash_theme() {
+    echo "${CMDLINE}" |
+      sed -e 's: :\n:g' |
+      grep splash |
+      cut -d "=" -f 2 |
+      sed -e 's:,:\n:g' |
+      grep theme |
+      cut -d ":" -f 2
+}
+
+is_fbsplash_started() {
+    [ -e "${SPLASH_FIFO}" ] && [ -e "${SPLASH_PID_FILE}" ] && [ -d /proc/`cat "${SPLASH_PID_FILE}"` ]
+}
+
+_fbsplash_init() {
+    is_fbsplash_started && return
+
+    mount -t tmpfs -osize=1k none "${SPLASH_CACHE}" || bad_msg "Error mounting tmpfs at ${SPLASH_CACHE}"
+
+    "${SPLASH_BIN}" -t `_fbsplash_theme` --pidfile "${SPLASH_PID_FILE}" --type bootup
+
+    splashcmd update_svc kernel svc_started
+    splashcmd update_svc kernel-modules svc_inactive_start
+    splashcmd update_svc rootfs svc_inactive_start
+    splashcmd step_progress
+}
+
+_fbsplash_cmd() {
+    is_fbsplash && is_fbsplash_started && echo "${@}" >> "${SPLASH_FIFO}"
+}
+
+_fbsplash_kill() {
+    kill `cat "${SPLASH_PID_FILE}"`
+}
+
+_fbsplash_exit() {
+    _fbsplash_cmd "exit staysilent"
+}
+
+_fbsplash_show() {
+    _fbsplash_cmd "set mode silent"
+}
+
+_fbsplash_hide() {
+    _fbsplash_cmd "set mode verbose"
+}
+
+_fbsplash_message() {
+    #splash set_msg "${1}"
+    _fbsplash_cmd "set message ${1}"
+}
+
+_fbsplash_log() {
+    _fbsplash_cmd "log ${1}"
+}
+
+_fbsplash_progress() {
+    _fbsplash_cmd "progress $(($1 * $SPLASH_PROGRESS_STEP_SIZE))"
+}
+
+_fbsplash_update_svc() {
+    local service="${1}"
+    local state="${2}"
+    _fbsplash_cmd "update_svc ${service} ${state}"
+}
+
+_fbsplash_newroot() {
+    local newroot="${1}"
+
+    if ! mount -obind "${SPLASH_CACHE}" "${newroot}"/"${SPLASH_CACHE}"; then
+        bad_msg "Failed to mount ${SPLASH_CACHE} in new root."
+        _fbsplash_kill
+        umount "${SPLASH_CACHE}"
+    fi
 }

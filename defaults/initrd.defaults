@@ -67,6 +67,14 @@ PLYMOUTHD_BIN="/sbin/plymouthd"
 PLYMOUTH_BIN="/bin/plymouth"
 [ ! -e "${PLYMOUTH_BIN}" ] && PLYMOUTH_BIN="/usr/bin/plymouth"
 
+SPLASH_CACHE="/lib/splash/cache"
+SPLASH_PID_FILE="${SPLASH_CACHE}/daemon.pid"
+SPLASH_FIFO="${SPLASH_CACHE}/.splash"
+SPLASH_BIN="/sbin/fbsplashd.static"
+SPLASH_MAX_PROGRESS=$((65536 - 65536 / 4))
+SPLASH_PROGRESS_STEPS=5
+SPLASH_PROGRESS_STEP_SIZE=$(($SPLASH_MAX_PROGRESS / $SPLASH_PROGRESS_STEPS))
+
 REAL_ROOT=""
 CONSOLE="/dev/console"
 NEW_ROOT="/newroot"

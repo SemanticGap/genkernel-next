@@ -50,6 +50,8 @@ _modules_scan() {
 }
 
 modules_init() {
+    splashcmd updatesvc kernel-modules svc_starting
+
     if [ -z "${DO_modules}" ]; then
         good_msg 'Skipping module load; disabled via commandline'
     elif [ -d "/lib/modules/${KV}" ]; then
@@ -69,6 +71,8 @@ modules_init() {
     # Give udev time to execute all the rules. This may be beneficial
     # for usb-storage devices.
     is_udev && udevadm settle
+
+    splashcmd update_svc kernel-modules svc_started
 }
 
 cmdline_hwopts() {
