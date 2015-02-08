@@ -48,6 +48,11 @@ _fs_type_in_use() {
     cut -d " " -f 3 < /proc/mounts | fgrep -q "${fs_type}"
 }
 
+_fs_mounted() {
+    local fs=${1}
+    cut -d " " -f 1 < /proc/mounts | fgrep -q "${fs}"
+}
+
 mount_devfs() {
     # Use devtmpfs if enabled in kernel,
     # else tmpfs. Always run mdev just in case
@@ -70,9 +75,11 @@ mount_devfs() {
             || bad_msg "Failed to mount /dev/pts"
     fi
 
-    mkdir -p -m 1777 /dev/shm
-    mount -t tmpfs -o mode=1777,nosuid,nodev tmpfs \
-        /dev/shm || bad_msg "Failed to mount /dev/shm"
+    if ! _fs_mounted /dev/shm; then
+        mkdir -p -m 1777 /dev/shm
+        mount -t tmpfs -o mode=1777,nosuid,nodev tmpfs \
+            /dev/shm || bad_msg "Failed to mount /dev/shm"
+    fi
 }
 
 device_list() {
