@@ -255,6 +255,9 @@ for x in ${CMDLINE}; do
 	aufsroot=*)
 	    AUFS_ROOT=${x#*=}
 	;;
+        aufs_rootflags=*)
+          AUFS_ROOTFLAGS=${x#*=}
+      ;;
     esac
 done
 

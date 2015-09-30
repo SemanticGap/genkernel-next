@@ -23,7 +23,7 @@ aufs_root_init() {
 	mount -oremount,rw /newroot
 	mount -omove /newroot ${AUFS_MNT_ROOT}/rw
 
-	mount "${AUFS_ROOT}" ${AUFS_MNT_ROOT}/ro
+	mount -o "${AUFS_ROOTFLAGS:-ro}" "${AUFS_ROOT}" ${AUFS_MNT_ROOT}/ro
 
 	mount -t aufs none /newroot -o dirs=${AUFS_MNT_ROOT}/rw=rw:${AUFS_MNT_ROOT}/ro=ro
 
