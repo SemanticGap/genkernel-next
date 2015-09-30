@@ -3,6 +3,11 @@
 
 CPIO_ARGS="--quiet -o -H newc"
 
+_get_udevdir() {
+    local udev_dir=$(pkg-config --variable udevdir udev)
+    [[ -n "${udev_dir}" ]] && echo $(realpath "${udev_dir}")
+}
+
 # The copy_binaries function is explicitly released under the CC0 license to
 # encourage wide adoption and re-use.  That means:
 # - You may use the code of copy_binaries() as CC0 outside of genkernel
@@ -131,7 +136,7 @@ append_busybox() {
 
     # Set up a few default symlinks
     local default_applets="[ ash sh mount uname ls echo cut cat flock stty"
-    default_applets+=" readlink mountpoint dmesg udhcpc"
+    default_applets+=" readlink realpath mountpoint dmesg udhcpc chmod mktemp"
     for i in ${BUSYBOX_APPLETS:-${default_applets}}; do
         rm -f ${TEMP}/initramfs-busybox-temp/bin/$i
         ln -s busybox ${TEMP}/initramfs-busybox-temp/bin/$i ||
@@ -268,15 +273,16 @@ append_iscsi(){
 append_lvm(){
     if [ -d "${TEMP}/initramfs-lvm-temp" ]
     then
-        rm -r "${TEMP}/initramfs-lvm-temp/"
+        rm -rf "${TEMP}/initramfs-lvm-temp/"
     fi
     cd ${TEMP}
     mkdir -p "${TEMP}/initramfs-lvm-temp"/{bin,sbin}
     mkdir -p "${TEMP}/initramfs-lvm-temp/etc/lvm/"
     print_info 1 'LVM: Adding support (copying binaries from system)...'
 
-    local udev_dir="$(pkg-config --variable udevdir udev)"
-    udev_files=( $(qlist -e sys-fs/lvm2:0 | grep ^${udev_dir}/rules.d) )
+    local udev_dir=$(_get_udevdir)
+    udev_files=( $(qlist -e sys-fs/lvm2:0 | xargs realpath | \
+        grep ^${udev_dir}/rules.d) )
     for f in "${udev_files[@]}"; do
         [ -f "${f}" ] || gen_die "append_lvm: not a file: ${f}"
         mkdir -p "${TEMP}/initramfs-lvm-temp"/$(dirname "${f}") || \
@@ -287,7 +293,9 @@ append_lvm(){
 
     copy_binaries "${TEMP}/initramfs-lvm-temp" \
         /sbin/lvm /sbin/dmsetup /sbin/thin_check \
-        /sbin/thin_restore /sbin/thin_dump
+        /sbin/thin_restore /sbin/thin_dump \
+	/sbin/cache_check /sbin/cache_restore \
+	/sbin/cache_dump /sbin/cache_repair
 
     if [ -f /etc/lvm/lvm.conf ]
     then
@@ -299,7 +307,7 @@ append_lvm(){
     find . -print | cpio ${CPIO_ARGS} --append -F "${CPIO}" \
             || gen_die "compressing lvm cpio"
     cd "${TEMP}"
-    rm -r "${TEMP}/initramfs-lvm-temp/"
+    rm -rf "${TEMP}/initramfs-lvm-temp/"
 }
 
 append_mdadm(){
@@ -600,7 +608,7 @@ append_udev() {
         rm -r "${TEMP}/initramfs-udev-temp"
     fi
 
-    local udev_dir="$(pkg-config --variable udevdir udev)"
+    local udev_dir=$(_get_udevdir)
     udev_files="
         ${udev_dir}/rules.d/50-udev-default.rules
         ${udev_dir}/rules.d/60-persistent-storage.rules
@@ -611,6 +619,7 @@ append_udev() {
         ${udev_dir}/rules.d/40-gentoo.rules
         ${udev_dir}/rules.d/99-systemd.rules
         /etc/modprobe.d/blacklist.conf
+        /lib/systemd/network/99-default.link
     "
     is_maybe=0
     for f in ${udev_files} -- ${udev_maybe_files}; do
@@ -633,6 +642,10 @@ append_udev() {
     # systemd-207 dropped /sbin/udevd
     local udevd_bin=/sbin/udevd
     [ ! -e "${udevd_bin}" ] && udevd_bin=/usr/lib/systemd/systemd-udevd
+    # systemd-210, moved udevd to another location
+    [ ! -e "${udevd_bin}" ] && udevd_bin=/lib/systemd/systemd-udevd
+    [ ! -e "${udevd_bin}" ] && gen_die "cannot find udevd"
+
     local udevadm_bin=/bin/udevadm
     [ ! -e "${udevadm_bin}" ] && udevadm_bin=/usr/bin/udevadm
 
@@ -650,11 +663,17 @@ append_udev() {
 }
 
 append_ld_so_conf() {
-    print_info 1 'ld.so.conf: adding /etc/ld.so.conf{.d/*,}...'
-
     local tmp_dir="${TEMP}/initramfs-ld-temp"
     rm -rf "${tmp_dir}"
     mkdir -p "${tmp_dir}"
+
+    print_info 1 'ldconfig: adding /sbin/ldconfig...'
+
+    # Add ldconfig to the initramfs so that we can
+    # run ldconfig at runtime if needed.
+    copy_binaries "${tmp_dir}" "/sbin/ldconfig"
+
+    print_info 1 'ld.so.conf: adding /etc/ld.so.conf{.d/*,}...'
 
     local f= f_dir=
     for f in /etc/ld.so.conf /etc/ld.so.conf.d/*; do
@@ -680,25 +699,33 @@ append_ld_so_conf() {
     # but we need to generate a valid ld.so.conf. So we extract the
     # current CPIO archive, run ldconfig -r against it and append the
     # last bits.
-    local tmp_dir_ext="${tmp_dir}/extracted"
-    mkdir -p "${tmp_dir_ext}"
-    mkdir -p "${tmp_dir}/etc"
-    cd "${tmp_dir_ext}" || gen_die "cannot cd into ${tmp_dir_ext}"
-    cpio -id --quiet < "${CPIO}" || gen_die "cannot re-extract ${CPIO}"
+    #
+    # We only do this if we are "root", because "ldconfig -r" requires
+    # root privileges to chroot. If we are not root we don't generate the
+    # ld.so.cache here, but expect that ldconfig would regenerate it when the
+    # machine boots.
+    if [[ $(id -u) == 0 && -z ${FAKED_MODE:-} ]]; then
+        local tmp_dir_ext="${tmp_dir}/extracted"
+        mkdir -p "${tmp_dir_ext}"
+        mkdir -p "${tmp_dir}/etc"
+        cd "${tmp_dir_ext}" || gen_die "cannot cd into ${tmp_dir_ext}"
+        cpio -id --quiet < "${CPIO}" || gen_die "cannot re-extract ${CPIO}"
 
-    cd "${tmp_dir}" || gen_die "cannot cd into ${tmp_dir}"
-    ldconfig -r "${tmp_dir_ext}" || \
-        gen_die "cannot run ldconfig on ${tmp_dir_ext}"
-    cp -a "${tmp_dir_ext}/etc/ld.so.cache" "${tmp_dir}/etc/ld.so.cache" || \
-        gen_die "cannot copy ld.so.cache"
-    rm -rf "${tmp_dir_ext}"
+        cd "${tmp_dir}" || gen_die "cannot cd into ${tmp_dir}"
+        ldconfig -r "${tmp_dir_ext}" || \
+            gen_die "cannot run ldconfig on ${tmp_dir_ext}"
+        cp -a "${tmp_dir_ext}/etc/ld.so.cache" "${tmp_dir}/etc/ld.so.cache" || \
+            gen_die "cannot copy ld.so.cache"
+        rm -rf "${tmp_dir_ext}"
 
-    cd "${tmp_dir}" || gen_die "cannot cd into ${tmp_dir}"
-    log_future_cpio_content
-    find . -print | cpio ${CPIO_ARGS} --append -F "${CPIO}" \
-            || gen_die "compressing ld.so.cache cpio"
-    cd "$(dirname "${tmp_dir}")"
-    rm -rf "${tmp_dir}"
+        cd "${tmp_dir}" || gen_die "cannot cd into ${tmp_dir}"
+        log_future_cpio_content
+        find . -print | cpio ${CPIO_ARGS} --append -F "${CPIO}" \
+                || gen_die "compressing ld.so.cache cpio"
+        cd "$(dirname "${tmp_dir}")"
+        rm -rf "${tmp_dir}"
+    fi
+
 }
 
 print_list()
@@ -770,7 +797,8 @@ append_drm() {
     rm -rf "${TEMP}/initramfs-drm-${KV}-temp/"
     mkdir -p "${TEMP}/initramfs-drm-${KV}-temp/lib/modules/${KV}"
 
-    local drm_path="./lib/modules/${KV}/kernel/drivers/gpu/drm"
+    local mods_path="./lib/modules/${KV}"
+    local drm_path="${mods_path}/kernel/drivers/gpu/drm"
     local modules
     if [ -d "${drm_path}" ]
     then
@@ -791,7 +819,7 @@ append_drm() {
     local mod i fws fw
     for i in ${modules}
     do
-        mod=$(find "${drm_path}" -name "${i}${MOD_EXT}" 2>/dev/null| head -n 1)
+        mod=$(find "${mods_path}" -name "${i}${MOD_EXT}" 2>/dev/null| head -n 1)
         if [ -z "${mod}" ]
         then
             print_warning 2 "Warning :: ${i}${MOD_EXT} not found; skipping..."

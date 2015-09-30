@@ -82,16 +82,16 @@ for x in ${CMDLINE}; do
         domdev)
             USE_MDEV=1
         ;;
-        dolvm)
+        dolvm|rd.lvm.lv=*)
             USE_LVM_NORMAL=1
         ;;
-        domdadm)
+        domdadm|rd.md.uuid=*)
             USE_MDADM=1
         ;;
-        dodmraid)
+        dodmraid|rd.dm.uuid=*)
             USE_DMRAID_NORMAL=1
         ;;
-        dodmraid=*)
+        dodmraid=*|rd.dm.uuid=*)
             DMRAID_OPTS=${x#*=}
             USE_DMRAID_NORMAL=1
         ;;
@@ -157,7 +157,11 @@ for x in ${CMDLINE}; do
             NFSROOT=${x#*=}
         ;;
 
-        iscsi_initiatorname=*)
+        netroot=iscsi:*)
+            x=${x#*=}
+            parse_dracut_iscsi_root "${x}"
+        ;;
+        iscsi_initiatorname=*|iscsi_initiator=*)
             ISCSI_INITIATORNAME=${x#*=}
         ;;
         iscsi_target=*)
@@ -246,8 +250,11 @@ for x in ${CMDLINE}; do
         rootfstype=*)
             ROOTFSTYPE=${x#*=}
         ;;
-        keymap=*)
-            keymap=${x#*=}
+        keymap=*|vconsole.keymap=*)
+            USE_KEYMAP=${x#*=}
+        ;;
+        overlayfs)
+            USE_OVERLAYFS=1
         ;;
         aufs)
             USE_AUFS=1
@@ -262,9 +269,8 @@ for x in ${CMDLINE}; do
 done
 
 quiet_kmsg
-
 shutdown_init
-
+maybe_setup_ld_cache
 real_init_init
 
 is_livecd || {
@@ -293,9 +299,6 @@ is_mdev && splashcmd init
 cd /
 
 start_iscsi
-
-# Setup md device nodes if they dont exist
-setup_md_device
 
 start_volumes
 zfs_start_volumes
