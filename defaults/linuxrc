@@ -259,7 +259,10 @@ for x in ${CMDLINE}; do
         aufs)
             USE_AUFS=1
         ;;
-	aufsroot=*)
+	aufsroot=*) # for compatibility
+	    AUFS_ROOT=${x#*=}
+	;;
+	aufs_root=*)
 	    AUFS_ROOT=${x#*=}
 	;;
         aufs_rootflags=*)
