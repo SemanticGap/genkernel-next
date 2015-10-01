@@ -296,6 +296,7 @@ _fbsplash_init() {
 
     local TYPE="${1:-bootup}"
 
+    mkdir -p "${SPLASH_CACHE}"
     mount -t tmpfs -osize=1k none "${SPLASH_CACHE}" || bad_msg "Error mounting tmpfs at ${SPLASH_CACHE}"
 
     "${SPLASH_BIN}" -t `_fbsplash_theme` --pidfile "${SPLASH_PID_FILE}" --type "${TYPE}"
