@@ -132,6 +132,8 @@ longusage() {
   echo "    --kernname=<...>    Tag the kernel and ramdisk with a name:"
   echo "                If not defined the option defaults to"
   echo "                'genkernel'"
+  echo "    --appendname=<...>    Append a text to the kernel and ramdisk's name:"
+  echo "                If not defined the appendname is empty"
   echo "    --minkernpackage=<tbz2> File to output a .tar.bz2'd kernel and ramdisk:"
   echo "                No modules outside of the ramdisk will be"
   echo "                included..."
@@ -163,7 +165,7 @@ longusage() {
   echo "    --compress-initrd, --no-compress-initrd"
   echo "                Compress or do not compress the generated initramfs"
   echo "    --compress-initramfs-type=<arg>"
-  echo "                Compression type for initramfs (best, xz, lzma, bzip2, gzip, lzop)"
+  echo "                Compression type for initramfs (best, xz, lzma, bzip2, gzip, lzop, lz4)"
 }
 
 usage() {
@@ -521,6 +523,10 @@ parse_cmdline() {
         --kernname=*)
             CMD_KERNNAME=`parse_opt "$*"`
             print_info 2 "KERNNAME: ${CMD_KERNNAME}"
+            ;;
+        --appendname=*)
+            CMD_APPENDNAME=`parse_opt "$*"`
+            print_info 2 "APPENDNAME: ${CMD_APPENDNAME}"
             ;;
         --symlink|--no-symlink)
             CMD_SYMLINK=`parse_optbool "$*"`

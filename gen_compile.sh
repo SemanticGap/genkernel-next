@@ -294,6 +294,8 @@ compile_kernel() {
     if [ -n "${firmware_in_kernel_line}" -a "${firmware_in_kernel_line}" != CONFIG_FIRMWARE_IN_KERNEL=y ]
     then
         print_info 1 "        >> Installing firmware ('make firmware_install') due to CONFIG_FIRMWARE_IN_KERNEL != y..."
+        [ "${INSTALL_MOD_PATH}" != '' ] && export INSTALL_MOD_PATH
+        [ "${INSTALL_FW_PATH}" != '' ] && export INSTALL_FW_PATH
         MAKEOPTS="${MAKEOPTS} -j1" compile_generic "firmware_install" kernel
     else
         print_info 1 "        >> Not installing firmware as it's included in the kernel already (CONFIG_FIRMWARE_IN_KERNEL=y)..."
@@ -310,11 +312,11 @@ compile_kernel() {
     then
         copy_image_with_preserve "kernel" \
             "${tmp_kernel_binary}" \
-            "kernel-${KNAME}-${ARCH}-${KV}"
+            "kernel-${KNAME}-${ARCH}-${KV}${KAPPENDNAME}"
 
         copy_image_with_preserve "System.map" \
             "System.map" \
-            "System.map-${KNAME}-${ARCH}-${KV}"
+            "System.map-${KNAME}-${ARCH}-${KV}${KAPPENDNAME}"
 
         if isTrue "${GENZIMAGE}"
         then
@@ -323,9 +325,9 @@ compile_kernel() {
                 "kernelz-${KV}"
         fi
     else
-        cp "${tmp_kernel_binary}" "${TMPDIR}/kernel-${KNAME}-${ARCH}-${KV}" ||
+        cp "${tmp_kernel_binary}" "${TMPDIR}/kernel-${KNAME}-${ARCH}-${KV}${KAPPENDNAME}" ||
             gen_die "Could not copy the kernel binary to ${TMPDIR}!"
-        cp "System.map" "${TMPDIR}/System.map-${KNAME}-${ARCH}-${KV}" ||
+        cp "System.map" "${TMPDIR}/System.map-${KNAME}-${ARCH}-${KV}${KAPPENDNAME}" ||
             gen_die "Could not copy System.map to ${TMPDIR}!"
         if isTrue "${GENZIMAGE}"
         then
