@@ -992,6 +992,24 @@ append_auxilary() {
     rm -r "${TEMP}/initramfs-aux-temp/"
 }
 
+append_kexec() {
+    if [ -d "${TEMP}/initramfs-kexec-temp" ]
+    then
+        rm -r "${TEMP}/initramfs-kexec-temp"
+    fi
+    mkdir -p "${TEMP}/initramfs-kexec-temp/sbin/"
+
+    print_info 1 "Including kexec support"
+    copy_binaries "${TEMP}/initramfs-kexec-temp" /usr/sbin/kexec
+
+    cd "${TEMP}/initramfs-kexec-temp/"
+    log_future_cpio_content
+    find . -print | cpio ${CPIO_ARGS} --append -F "${CPIO}" \
+            || gen_die "compressing kexec cpio"
+    cd "${TEMP}"
+    rm -rf "${TEMP}/initramfs-kexec-temp" > /dev/null
+}
+
 append_data() {
     local name=$1 var=$2
     local func="append_${name}"
@@ -1025,6 +1043,7 @@ create_initramfs() {
     append_data 'luks' "${LUKS}"
     append_data 'multipath' "${MULTIPATH}"
     append_data 'gpg' "${GPG}"
+    append_data 'kexec' "${KEXEC}"
 
     if [ "${RAMDISKMODULES}" = '1' ]
     then
