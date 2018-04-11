@@ -53,21 +53,34 @@ _setup_squashfs_aufs() {
     # Setup aufs directories and vars
     local overlay=/mnt/overlay
     local static=/mnt/livecd
-
-    for i in "${overlay}" "${static}"; do
-        [ ! -d "${i}" ] && mkdir -p "${i}"
-    done
+    local branches=""
+    local mounts=""
+    local data_overlay="${CDROOT_PATH}"/livecd-data.ext
     good_msg "Loading aufs"
     modprobe aufs > /dev/null 2>&1
 
-    mount -t squashfs -o loop,ro "${LOOP_PATH}" "${static}"
-    mount -t tmpfs none "${overlay}"
-    mount -t aufs -o br:${overlay}:${static} aufs "${NEW_ROOT}"
+    for i in "${LOOP_PATH}" "${CDROOT_PATH}"/livecd-*.squashfs; do
+      local mnt=/mnt/`basename "${i}"`
+      [ ! -d "${mnt}" ] && mkdir -p "${mnt}"
+      mount -t squashfs -o loop,ro "${i}" "${mnt}"
+      branches="${mnt}=ro:${branches}"
+      mounts="${mnt} ${mounts}"
+    done
 
-    [ ! -d "${NEW_ROOT}${overlay}" ] && mkdir -p "${NEW_ROOT}${overlay}"
-    [ ! -d "${NEW_ROOT}${static}" ] && mkdir -p "${NEW_ROOT}${static}"
+    [ ! -d "${overlay}" ] && mkdir -p "${overlay}"
+    if [[ -e "${data_overlay}" ]]; then
+      mount -o remount,rw "${CDROOT_PATH}" &&
+        mount -t ext2 -o loop,rw "${data_overlay}" "${overlay}" ||
+        mount -t tmpfs none "${overlay}"
+    else
+      mount -t tmpfs none "${overlay}"
+    fi
+    branches="${overlay}=rw:${branches}"
+    mount -t aufs -o br:"${branches}" aufs "${NEW_ROOT}"
+
     echo "aufs / aufs defaults 0 0" > "${NEW_ROOT}"/etc/fstab
-    for i in "${overlay}" "${static}"; do
+    for i in "${overlay}" ${mounts}; do
+        [ ! -d "${NEW_ROOT}${i}" ] && mkdir -p "${NEW_ROOT}${i}"
         mount --move "${i}" "${NEW_ROOT}${i}"
     done
 
