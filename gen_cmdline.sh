@@ -77,7 +77,7 @@ longusage() {
   echo "                autodetect."
   echo "    --makeopts=<makeopts>   Make options such as -j2, etc..."
   echo "    --mountboot     Mount BOOTDIR automatically if mountable"
-  echo "    --no-mountboot      Don't mount BOOTDIR automatically"  
+  echo "    --no-mountboot      Don't mount BOOTDIR automatically"
   echo "    --bootdir=<dir>     Set the location of the boot-directory, default is /boot"
   echo "    --modprobedir=<dir> Set the location of the modprobe.d-directory, default is /etc/modprobe.d"
   echo "  Initialization"
@@ -152,12 +152,20 @@ longusage() {
   echo "    --firmware"
   echo "                Enable copying of firmware into initramfs"
   echo "    --firmware-dir=<dir>"
+  echo "    --firmware-src=<dir>"
+  echo "                Implies --firmware."
   echo "                Specify directory to copy firmware from (defaults"
-  echo "                to /lib/firmware)"
+  echo "                to --firmware-dst setting)"
+  echo "    --firmware-dst=<dir>"
+  echo "                                Implies --firmware."
+  echo "                Specify directory to install firmware to (defaults"
+  echo "                                to /lib/firmware)"
   echo "    --firmware-files=<files>"
   echo "                Specifies specific firmware files to copy. This"
   echo "                overrides --firmware-dir. For multiple files,"
   echo "                separate the filenames with a comma"
+  echo "    --firmware-install"
+  echo "                Enable installation firmware onto root filesystem."
   echo "    --integrated-initramfs, --no-integrated-initramfs"
   echo "                Include/exclude the generated initramfs in the kernel"
   echo "                instead of keeping it as a separate file"
@@ -567,15 +575,29 @@ parse_cmdline() {
             CMD_FIRMWARE=`parse_optbool "$*"`
             print_info 2 "CMD_FIRMWARE: ${CMD_FIRMWARE}"
             ;;
-        --firmware-dir=*)
-            CMD_FIRMWARE_DIR=`parse_opt "$*"`
+        --firmware-dst=*)
+            CMD_FIRMWARE_DST=`parse_opt "$*"`
             CMD_FIRMWARE=1
-            print_info 2 "CMD_FIRMWARE_DIR: ${CMD_FIRMWARE_DIR}"
+            print_info 2 "CMD_FIRMWARE_DST: ${CMD_FIRMWARE_DST}"
+            ;;
+        --firmware-dir=*)
+            CMD_FIRMWARE_SRC=`parse_opt "$*"`
+            CMD_FIRMWARE=1
+            print_info 2 "CMD_FIRMWARE_SRC: ${CMD_FIRMWARE_SRC}"
+            ;;
+        --firmware-src=*)
+            CMD_FIRMWARE_SRC=`parse_opt "$*"`
+            CMD_FIRMWARE=1
+            print_info 2 "CMD_FIRMWARE_SRC: ${CMD_FIRMWARE_SRC}"
             ;;
         --firmware-files=*)
             CMD_FIRMWARE_FILES=`parse_opt "$*"`
             CMD_FIRMWARE=1
             print_info 2 "CMD_FIRMWARE_FILES: ${CMD_FIRMWARE_FILES}"
+            ;;
+        --firmware-install|--no-firmware-install)
+            CMD_FIRMWARE_INSTALL=`parse_optbool "$*"`
+            print_info 2 "CMD_FIRMWARE_INSTALL: ${CMD_FIRMWARE_INSTALL}"
             ;;
         --integrated-initramfs|--no-integrated-initramfs)
             CMD_INTEGRATED_INITRAMFS=`parse_optbool "$*"`

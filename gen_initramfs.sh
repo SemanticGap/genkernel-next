@@ -8,6 +8,11 @@ _get_udevdir() {
     [[ -n "${udev_dir}" ]] && echo $(realpath "${udev_dir}")
 }
 
+_get_systemdutildir() {
+    local systemdutil_dir=$(pkg-config systemd --variable=systemdutildir)
+    [[ -n "${systemdutil_dir}" ]] && echo $(realpath "${systemdutil_dir}")
+}
+
 # The copy_binaries function is explicitly released under the CC0 license to
 # encourage wide adoption and re-use.  That means:
 # - You may use the code of copy_binaries() as CC0 outside of genkernel
@@ -139,7 +144,7 @@ append_busybox() {
         rm -rf "${TEMP}/initramfs-busybox-temp" > /dev/null
     fi
 
-    mkdir -p "${TEMP}/initramfs-busybox-temp/bin/" 
+    mkdir -p "${TEMP}/initramfs-busybox-temp/bin/"
     tar -xjf "${BUSYBOX_BINCACHE}" -C "${TEMP}/initramfs-busybox-temp/bin" busybox ||
         gen_die 'Could not extract busybox bincache!'
     chmod +x "${TEMP}/initramfs-busybox-temp/bin/busybox"
@@ -576,9 +581,9 @@ append_luks() {
 }
 
 append_firmware() {
-    if [ -z "${FIRMWARE_FILES}" -a ! -d "${FIRMWARE_DIR}" ]
+    if [ -z "${FIRMWARE_FILES}" -a ! -d "${FIRMWARE_SRC}" ]
     then
-        gen_die "specified firmware directory (${FIRMWARE_DIR}) does not exist"
+        gen_die "specified firmware directory (${FIRMWARE_SRC}) does not exist"
     fi
     if [ -d "${TEMP}/initramfs-firmware-temp" ]
     then
@@ -596,7 +601,7 @@ append_firmware() {
         done
         IFS=$OLD_IFS
     else
-        cp -a "${FIRMWARE_DIR}"/* ${TEMP}/initramfs-firmware-temp/lib/firmware/
+        cp -a "${FIRMWARE_SRC}"/* ${TEMP}/initramfs-firmware-temp/lib/firmware/
     fi
     log_future_cpio_content
     find . -print | cpio ${CPIO_ARGS} --append -F "${CPIO}" \
@@ -630,6 +635,7 @@ append_udev() {
     fi
 
     local udev_dir=$(_get_udevdir)
+    local systemd_dir=$(_get_systemdutildir)
     udev_files="
         ${udev_dir}/rules.d/50-udev-default.rules
         ${udev_dir}/rules.d/60-persistent-storage.rules
@@ -641,7 +647,7 @@ append_udev() {
         ${udev_dir}/rules.d/99-systemd.rules
         ${udev_dir}/rules.d/71-seat.rules
         /etc/modprobe.d/blacklist.conf
-        /usr/lib/systemd/network/99-default.link
+        ${systemd_dir}/network/99-default.link
     "
     is_maybe=0
     for f in ${udev_files} -- ${udev_maybe_files}; do
@@ -660,12 +666,12 @@ append_udev() {
                 print_warning 1 "cannot copy ${f} from udev"
         fi
     done
-
     # systemd-207 dropped /sbin/udevd
     local udevd_bin=/sbin/udevd
     [ ! -e "${udevd_bin}" ] && udevd_bin=/usr/lib/systemd/systemd-udevd
     # systemd-210, moved udevd to another location
     [ ! -e "${udevd_bin}" ] && udevd_bin=/lib/systemd/systemd-udevd
+    [ ! -e "${udevd_bin}" ] && udevd_bin=${systemd_dir}/systemd-udevd
     [ ! -e "${udevd_bin}" ] && gen_die "cannot find udevd"
 
     local udevadm_bin=/bin/udevadm
@@ -870,6 +876,23 @@ append_drm() {
     rm -r "${TEMP}/initramfs-drm-${KV}-temp/"
 }
 
+append_modprobed() {
+    local TDIR="${TEMP}/initramfs-modprobe.d-temp"
+    if [ -d "${TDIR}" ]
+    then
+      rm -r "${TDIR}"
+    fi
+    mkdir -p "${TDIR}/etc"
+    cp -r "${MODPROBEDIR}" "${TDIR}/etc/modprobe.d"
+
+    cd "${TDIR}"
+    log_future_cpio_content
+    find . -print | cpio ${CPIO_ARGS} --append -F "${CPIO}" \
+      || gen_die "compressing modprobe.d cpio"
+    cd "${TEMP}"
+    rm -rf "${TDIR}" > /dev/null
+}
+
 # check for static linked file with objdump
 is_static() {
     LANG="C" LC_ALL="C" objdump -T $1 2>&1 | grep "not a dynamic object" > /dev/null
@@ -1060,10 +1083,17 @@ create_initramfs() {
 
     append_data 'splash' "${SPLASH}"
 
+    if [ "$MODPROBEDIR" != '' ]
+    then
+        append_data 'modprobed'
+    else
+        print_info 1 "        >> Skipping modprobed copy"
+    fi
+
     append_data 'plymouth' "${PLYMOUTH}"
     isTrue "${PLYMOUTH}" && append_data 'drm'
 
-    if isTrue "${FIRMWARE}" && [ -n "${FIRMWARE_DIR}" ]
+    if isTrue "${FIRMWARE}" && [ -n "${FIRMWARE_SRC}" ]
     then
         append_data 'firmware'
     fi

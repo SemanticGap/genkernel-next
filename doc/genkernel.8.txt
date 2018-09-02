@@ -375,6 +375,11 @@ OUTPUT SETTINGS
     Specifies specific firmware files to copy. This overrides *--firmware-dir*.
     For multiple files, separate the filenames with a comma.
 
+*--*[*no-*]*firmware-install*::
+    Enable or disables installation of firmware onto root filesystem.
+    Please note this is deprecated, and installing
+    *sys-kernel/linux-firmware* should be preferred instead.
+
 *--*[*no-*]*integrated-initramfs*::
     Builds or does not build the generated initramfs into the kernel instead
     of keeping it as a separate file.
@@ -587,7 +592,7 @@ which the ramdisk scripts would recognize.
 *resume*=<...>::
 *noresume*::
     *noresume* disables any default resume parameters. *resume* and
-    *real_resume* specify a device via LABEL or UUID to use for for loading a
+    *real_resume* specify a device via LABEL or UUID to use for loading a
     SWSUSP resume image.
 
 *cdroot*[=<...>]::
