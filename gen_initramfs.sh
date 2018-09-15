@@ -438,7 +438,7 @@ append_splash(){
             cp -f "/usr/share/splashutils/initrd.splash" "${TEMP}/initramfs-splash-temp/etc"
         fi
         mkdir "${TEMP}"/initramfs-splash-temp/lib/splash/cache
-        copy_binaries "${TEMP}"/initramfs-splash-temp /sbin/fbsplashd.static
+        copy_binaries "${TEMP}"/initramfs-splash-temp /usr/sbin/fbsplashd
         cd "${TEMP}/initramfs-splash-temp/"
         log_future_cpio_content
         find . -print | cpio ${CPIO_ARGS} --append -F "${CPIO}" \
