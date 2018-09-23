@@ -60,11 +60,13 @@ _setup_squashfs_aufs() {
     modprobe aufs > /dev/null 2>&1
 
     for i in "${LOOP_PATH}" "${CDROOT_PATH}"/livecd-*.squashfs; do
-      local mnt=/mnt/`basename "${i}"`
-      [ ! -d "${mnt}" ] && mkdir -p "${mnt}"
-      mount -t squashfs -o loop,ro "${i}" "${mnt}"
-      branches="${mnt}=ro:${branches}"
-      mounts="${mnt} ${mounts}"
+      if [[ -e "${i}" ]]; then
+        local mnt=/mnt/`basename "${i}"`
+        [ ! -d "${mnt}" ] && mkdir -p "${mnt}"
+        mount -t squashfs -o loop,ro "${i}" "${mnt}"
+        branches="${mnt}=ro:${branches}"
+        mounts="${mnt} ${mounts}"
+      fi
     done
 
     [ ! -d "${overlay}" ] && mkdir -p "${overlay}"
