@@ -388,7 +388,7 @@ OUTPUT SETTINGS
     Compresses or does not compress the generated initramfs.
 
 *--compress-initramfs-type*=<arg>::
-    Compression type for initramfs (best, xz, lzma, bzip2, gzip, lzop).
+    Compression type for initramfs (best, xz, lzma, bzip2, gzip, lzop, lz4).
     "Best" causes selection of the best available algorithm that is selected
     in your kernel configuration.
 
@@ -616,6 +616,24 @@ which the ramdisk scripts would recognize.
 *isoboot*=<...>::
     Loop-mount an ISO file from the boot device to get the filesystem image.
     Useful with chain-loading environments and USB keys.
+
+
+HOOKS
+-----
+Genkernel provides a hook mechanism similar to the kernel's 'install.d' and
+'postinst.d' features. To use a hook, create a folder with the hook name in
+'/etc/kernels' and put any scripts you would like to execute inside. These
+hooks are run in the order detailed below and the files in them are run in
+alphanumeric order as described by the 'run-parts' documentation. 
+
+*/postbuild.d*::
+    Ran after the kernel is built.
+*/postinstall.d*::
+    Ran after the kernel is installed. 
+*/postinitramfs.d*::
+    Ran after the ramdisk/initramfs is built/installed.
+*/postgen.d*::
+    Ran after genekernel has completed it's tasks, but before cleanup.
 
 
 NETBOOTING
